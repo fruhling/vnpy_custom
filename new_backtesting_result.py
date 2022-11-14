@@ -6,25 +6,17 @@ import re
 from typing import List, Dict
 from pandas import DataFrame
 from vnpy.trader.constant import Exchange, Interval, Offset, Direction, Status
-from vnpy_custom.utility import get_contract_rule
+from vnpy_custom.cta_utility import get_contract_rule,get_symbol_head,to_CTP_symbol,generate_trading_day,wavg
 from dataclasses import dataclass
 
 import plotly.offline as pyo
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-import seaborn as sns
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib
-# from matplotlib.pyplot import MultipleLocator
-# matplotlib.use('Agg')
-# from pathlib import Path
 
 
-# contractRuleDict = pd.read_csv('./TradeAnalysis/contractRule.csv', index_col='symbolHead',encoding='gbk').to_dict(orient='index')
 exchange_dict = {"中国金融交易所":"CFFEX","上海期货交易所":"SHFE","郑州商品交易所":"CZCE","大连商品交易所":"DCE","上海国际能源交易中心股份有限公司":"INE"}
-# CRMSymbolNameDict={value['CRMName']:key for key,value in contractRuleDict.items()}
 direction_dict = {"买":"多","卖":"空"}
 offset_dict = {'平今':'平今', '平仓':'平', '平昨':'平昨', '开仓':'开'}
 net_pos_direction_dict = {Direction.LONG:1.0, Direction.SHORT:-1.0}
@@ -128,77 +120,7 @@ class CalSettlementData:
     settlement: float = 0.0
 
 
-
-
-def get_symbol_head(contract:str):
-    """获取合约代码英文部分，大写"""
-    if len(contract.split('.'))>1:
-        symbolHead = ''.join(re.findall(r'[A-Za-z]', contract.split(".")[0].upper()))
-    else:
-        symbolHead = ''.join(re.findall(r'[A-Za-z]', contract.upper()))
-    return symbolHead
-
-# def get_contract_rule(symbol:str):
-#     """通过contractRule.csv获取品种基础规则"""
-#     symbolHead = get_symbol_head(symbol)
-#     # contractRuleDict = pd.read_csv(Path.home().joinpath(".vntrader").joinpath("contractRule.csv"), index_col='symbolHead',encoding='gbk').to_dict(orient='index')
-#     return contractRuleDict[symbolHead]
-
-def to_CTP_symbol(symbol: str, exchange: str) -> str:
-    """
-    CZCE product of RQData has symbol like "TA1905" while
-    vt symbol is "TA905.CZCE" so need to add "1" in symbol.
-    """
-#     contractRule = get_contract_rule(symbol)
-#     exchange = contractRule['exchange']
-    product = ''.join(re.findall(r'[A-Za-z]', symbol))
-    time_str = ''.join(re.findall(r'[0-9]', symbol))
-    
-    if time_str in ["88", "888", "99", "889"]:
-        return symbol.upper()
-    elif (len(time_str) < 3) or (len(time_str)>4):
-        print('symbol错误')
-        return None
-    
-    if exchange == 'CFFEX':
-        return symbol.upper()
-    elif exchange == 'CZCE':
-        if len(time_str)==4:
-            year = time_str[1]
-            month = time_str[2:]
-        else:
-            year = time_str[:2]
-            month = time_str[2:]
-
-        return f"{product}{year}{month}".upper()
-    else:
-        return symbol.lower()
-
-def wavg(group, avg_name, weight_name):
-    d = group[avg_name]
-    w = group[weight_name]
-    try:
-        return (d * w).sum() / w.sum()
-    except ZeroDivisionError:
-        return d.mean()
-    
-def generate_trading_day(order_time: datetime) -> date:
-    """返回交易日，用于处理夜盘跨日与跨周末"""
-    if order_time.hour > 8 and order_time.hour < 16:
-        # return order_time.strftime('%Y%m%d')
-        return order_time.replace(hour=0,minute=0, second=0, microsecond=0).date()
-    else:
-        if order_time.hour <= 8 and order_time.weekday() <= 4:
-            return order_time.replace(hour=0,minute=0, second=0, microsecond=0).date()
-        elif order_time.hour <= 8 and order_time.weekday() > 4:
-            return (order_time + timedelta(days=2)).replace(hour=0,minute=0, second=0, microsecond=0).date()
-        elif order_time.hour >= 16 and order_time.weekday() < 4:
-            return (order_time + timedelta(days=1)).replace(hour=0,minute=0, second=0, microsecond=0).date()
-        elif order_time.hour >= 16 and order_time.weekday() >= 4:
-            return (order_time + timedelta(days=3)).replace(hour=0,minute=0, second=0, microsecond=0).date()
-        else:
-            pass
-    
+ 
 def transform_trade_data(
         backtesting_trades: list
     ) -> List[CalTradeData]:

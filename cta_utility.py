@@ -27,13 +27,10 @@ from seatable_api import Base, context
 from vnpy.trader.object import TradeData, BarData
 from vnpy_custom.myobject import MyTradeData, SignData
 from vnpy.trader.constant import Exchange, Interval, Offset, Direction
-from vnpy.trader.database import BaseDatabase, get_database
 from vnpy.trader.utility import generate_vt_symbol, extract_vt_symbol, load_json, save_json, BarGenerator, ArrayManager, get_file_path
 
 LOCAL_TZ = get_localzone()
 
-#导入数据库
-database_manager: BaseDatabase = get_database()
 #导入邮箱密码等设置文件
 vnpy_home_path = Path.home().joinpath(".vntrader")
 custom_setting_filename = vnpy_home_path.joinpath("vnpy_custom_setting.json")
@@ -699,30 +696,6 @@ def return_last_holding_day(contract, expired_day_str):
         print("最后交易日数据未包含相关信息")
         return None
         
-def return_domain_lastday(contract,today_domain=domain_contracts_dict):
-    startday='2010-01-01'
-    endday='2025-01-01'
-    contracts=database_manager.load_domain_info(contract,startday,endday)
-    d=[c.datetime for c in contracts if c.main==contract.upper()]
-    if d==[]:
-        return None
-    if contract==today_domain[''.join(re.findall(r'[A-Za-z]',contract)).upper()]:
-        return None
-    else:
-        return str(d[-1])[0:10]
-
-def return_domain_firstday(contract):
-    startday='2010-01-01'
-    endday='2025-01-01'
-    contracts=database_manager.load_domain_info(contract,startday,endday)
-    d=[c.datetime for c in contracts if c.main==contract.upper()]
-    if d==[]:
-        return None
-    # today_domain=load_json('/root/.vntrader/data/json/domain_contracts.json')
-    # if contract==today_domain[''.join(re.findall(r'[A-Za-z]',contract)).upper()]:
-    #     return None
-    return str(d[0])[0:10]
-
 def setting_dict(row):
     """将从strategy_sheet中，读出的setting信息，进行格式化，用于由strategy_sheet，生成strategy_setting.json"""
     setting = {}
