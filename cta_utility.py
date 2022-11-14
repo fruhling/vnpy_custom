@@ -222,32 +222,6 @@ def generate_sign_data(strategy_str:str,timecover_dict:dict,trade: TradeData, ba
     signs.append(sign)
     return signs
 
-def generate_newsign_data(strategy_str:str,min_period_str:str,trade: TradeData):
-    """生成可入库的交易信号数据，处理了交易时间"""
-    signs = []
-    trade_dict = trade.__dict__
-    interval = int(strategy_str.split("_")[3])
-    if interval == 5:
-        signtime = trade.datetime.replace(tzinfo=None,minute=int(trade.datetime.minute - trade.datetime.minute%interval), second=0,microsecond=0) + timedelta(minutes=5)
-    else:
-        # adjust_tradetime = trade.datetime.replace(tzinfo=None,minute=int(trade.datetime.minute - trade.datetime.minute%interval), second=0,microsecond=0)
-        adjust_tradetime = trade.datetime.replace(tzinfo=None, second=0,microsecond=0)
-        signtime = get_30minsign_time(adjust_tradetime,min_period_str)
-    sign = SignData(
-        strategy_group = strategy_str.split("_")[0],
-        strategy_id = strategy_str.split("_")[2],
-        period = strategy_str.split("_")[3],
-        instrument = to_CTP_symbol(trade_dict['symbol']),
-        order_time = signtime,
-        tradingday = generate_trading_day(trade_dict['datetime']).strftime('%Y%m%d'),
-        sign = json.dumps(generate_trading_sign(trade.__dict__)),
-        remark = '',
-        insert_time=datetime.now(),
-        gateway_name = trade.gateway_name
-    )
-    signs.append(sign)
-    return signs
-
 def generate_newsign_data2(strategy_str:str,min_period_str:str,trade: TradeData,open_switch: bool):
     """生成可入库的交易信号数据，处理了交易时间"""
     signs = []
