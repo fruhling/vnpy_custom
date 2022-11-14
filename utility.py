@@ -46,6 +46,14 @@ from email.mime.application import MIMEApplication
 from seatable_api import Base, context
 import rqdatac
 
+from vnpy_custom.cta_utility import (
+    get_contract_rule,
+    to_CTP_symbol,
+    setting_dict,
+    generate_trading_day,
+    get_vt_symbol
+
+)
 LOCAL_TZ = get_localzone()
 
 database_manager: BaseDatabase = get_database()
