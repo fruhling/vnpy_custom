@@ -121,3 +121,20 @@ db.createPartitionedTable(
     sortColumns=["datetime","symbol","rank_by","rank"],
     keepDuplicates=LAST)
 """
+
+# 创建trend_features表
+CREATE_TRENDFEATURES_TABLE_SCRIPT = """
+dataPath = "dfs://vnpy"
+db = database(dataPath)
+
+trend_features_columns = ["symbol", "exchange", "interval", "datetime", "close_price", "index_name","index_trend_var","index_trend_now", "trend_point_date", "trend_point_price", "trend_temp_point_price", "trend_cum_rate", "trend_up_down_range","trend_cum_revers","trend_period_days", "trend_up_nums", "trend_down_nums", "trend_linear_coef", "trend_linear_r2", "trend_linear_score"]
+trend_features_type = [SYMBOL, SYMBOL, SYMBOL, NANOTIMESTAMP, DOUBLE, SYMBOL, SYMBOL, INT, NANOTIMESTAMP,DOUBLE, DOUBLE,DOUBLE,DOUBLE,DOUBLE,INT,INT,INT,DOUBLE, DOUBLE, DOUBLE]
+trendfeatures = table(1:0, trend_features_columns, trend_features_type)
+
+db.createPartitionedTable(
+    trendfeatures,
+    "trendfeatures",
+    partitionColumns=["datetime"],
+    sortColumns=["symbol","interval","index_name","index_trend_var","datetime"],
+    keepDuplicates=LAST)
+"""

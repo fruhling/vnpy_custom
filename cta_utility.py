@@ -16,6 +16,9 @@ from typing import Callable, Dict, Tuple, Union
 import pandas as pd
 from pandas import concat, read_csv
 from math import floor, ceil
+from sklearn import linear_model
+from sklearn.metrics import mean_squared_error,r2_score
+
 import numpy as np
 import talib
 import requests
@@ -1177,7 +1180,6 @@ class NewArrayManager(ArrayManager):
             #返回当前趋势方向与距拐点的涨跌幅
             return change_now, trend_now, temp_trend,turn_price,trend_max_price
 
-
     def trend_turn(self, upvar: float=4, downvar:float=4)-> Tuple[bool, float, float, float,float]:
         """根据var，define trend"""
         #data 没有nan数据,为ret*100
@@ -1238,6 +1240,8 @@ class NewArrayManager(ArrayManager):
     def trend_feature(self,inflection_point_start:str,inflection_point_end:str='2029-12-31')-> Tuple[int,float,float, int,int,int]:
         """根据var，拐点时间，拐点价格。返回期间，周期数，涨跌幅，振幅，持仓差，阳线数，阴线数"""
         #data 返回趋势方向，拐点
+        #线性拟合
+        regr = linear_model.LinearRegression()
         #确定序列定位
         date_range, = np.where((self.datetime >= np.datetime64(inflection_point_start,'m')) & \
             (self.datetime <= np.datetime64(inflection_point_end,'m')))
@@ -1250,6 +1254,7 @@ class NewArrayManager(ArrayManager):
 
         if daily_count>1:
             #收益率
+            range_init_price = self.close[date_range[0]]
             date_range_close_roc=(self.close[date_range[-1]] / self.close[date_range[0]]) -1
             #震幅
             range_max_price = max(max(self.close[date_range]),max(self.high[date_range]))
@@ -1257,7 +1262,10 @@ class NewArrayManager(ArrayManager):
             date_range_up_down_roc = range_max_price / range_min_price -1
             #持仓差
             range_holding_change = (self.open_interest[date_range[-1]] - self.open_interest[date_range[0]])
-            range_holding_change_rate = (self.open_interest[date_range[-1]] - self.open_interest[date_range[0]]) / self.open_interest[date_range[0]]
+            if self.open_interest[date_range[0]]>0:
+                range_holding_change_rate = (self.open_interest[date_range[-1]] - self.open_interest[date_range[0]]) / self.open_interest[date_range[0]]
+            else:
+                range_holding_change_rate = 0
 
             #成交额
             turnover = self.turnover_array[date_range].sum()
@@ -1272,8 +1280,39 @@ class NewArrayManager(ArrayManager):
                     - self.close[date_range[0]:date_range[-2]]) > 0)
                 down_candle_nums = np.count_nonzero((self.close[date_range[1]:date_range[-1]] \
                     - self.close[date_range[0]:date_range[-2]]) < 0)
+            #线性拟合
+            train_data = np.log(self.close[date_range])
+            train_x = np.arange(len(train_data)).reshape(-1,1) #获取等长的x轴
+            train_y = np.array(train_data).reshape(-1,1)
+            #拟合数据
+            predict_data = train_data
+            model = regr.fit(train_x,train_y)
+            predict_x = np.arange(len(predict_data)).reshape(-1,1)    
+            predict_y = model.predict(predict_x)
+            predict_pre_y = np.array(predict_data).reshape(-1,1)
+            #拟合返回值
+            trend_index = model.coef_[0][0]
+            r2 = r2_score(predict_pre_y,predict_y)
+            
+            # rmse = np.sqrt(mean_squared_error(predict_pre_y,predict_y))
+            # last_bias=(predict_pre_y-predict_y)[-1][0]
+            # trend_reversed = trend_index*100*len(train_data)+
+            # last_bias_rmse = round(last_bias/rmse,2)
+            result = {}
+            result['daily_count'] = daily_count
+            result['date_range_close_roc'] = date_range_close_roc
+            result['date_range_up_down_roc'] = date_range_up_down_roc
+            result['up_candle_nums'] = up_candle_nums
+            result['down_candle_nums'] = down_candle_nums
+            result['turnover'] = turnover
+            result['range_holding_change_rate'] = range_holding_change_rate
+            result['trend_index'] = trend_index
+            result['r2'] = r2
+            result['range_init_price'] = range_init_price
+            result['range_max_price'] = range_max_price
+            result['range_min_price'] = range_min_price
 
-        return daily_count,date_range_close_roc,date_range_up_down_roc,up_candle_nums,down_candle_nums,turnover,range_holding_change_rate
+        return result
 
     def trend_record(self, upvar: float=4, downvar:float=4)-> list:
         """根据var，define trend"""
@@ -1344,9 +1383,9 @@ class TrendPoint(object):
         self.size = size
         self.count:int = 0
         self.inited: bool = False
-        self.trend_array = ArrayManager(size)
-        self.trend_up_array = ArrayManager(20)
-        self.trend_down_array = ArrayManager(20)
+        self.trend_array = NewArrayManager(size)
+        self.trend_up_array = NewArrayManager(size)
+        self.trend_down_array = NewArrayManager(size)
         self.trend_now = 1
         self.temp_max_verse = 0.0
         self.temp_init_bar = None
@@ -1365,7 +1404,6 @@ class TrendPoint(object):
             self.trend_down_array.update_bar(bar)
         else:
             self.trend_up_array.update_bar(bar)
-    
     
     def trend_point(self,bar: BarData):
         if not self.temp_init_bar:

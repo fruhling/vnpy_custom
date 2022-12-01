@@ -160,7 +160,6 @@ class MemberRankData(BaseData):
         """"""
         self.vt_symbol = f"{self.symbol}.{self.exchange.value}"
 
-
 @dataclass
 class TickOverview:
     """
@@ -187,3 +186,30 @@ class DailyBarOverview:
     start: datetime = None
     end: datetime = None
 
+@dataclass
+class TrendFeaturesData(BaseData):
+    """
+    TrendFeatures data of a certain trading period.
+    """
+
+    index_name: str
+    symbol: str
+    exchange: Exchange
+    datetime: datetime
+    trend_point_date: datetime
+
+    interval: Interval = None
+    close_price: float = 0
+    index_trend_var: str = "0"
+    index_trend_now: float = 0
+    trend_point_price: float = 0
+    trend_temp_point_price: float = 0
+    trend_cum_rate: float = 0
+    trend_up_down_range: float = 0
+    trend_cum_revers: float = 0
+    trend_period_days: float = 0
+    trend_up_nums: float = 0
+    trend_down_nums: float = 0
+    trend_linear_coef: float = 0
+    trend_linear_r2: float = 0
+    trend_linear_score: float = 0

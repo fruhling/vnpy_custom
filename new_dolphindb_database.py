@@ -31,7 +31,8 @@ from .new_dolphindb_script import (
     CREATE_DAILY_OVERVIEW_TABLE_SCRIPT,
     CREATE_TRADE_DATA_TABLE_SCRIPT,
     CREATE_SIGN_DATA_TABLE_SCRIPT,
-    CREATE_SIGNAL_TABLE_SCRIPT
+    CREATE_SIGNAL_TABLE_SCRIPT,
+    CREATE_TRENDFEATURES_TABLE_SCRIPT
 )
 
 from vnpy.trader.constant import Direction, Offset
@@ -42,7 +43,8 @@ from .myobject import (
     SignalData, 
     MemberRankData,
     MainData, 
-    DailyBarOverview
+    DailyBarOverview,
+    TrendFeaturesData
 )
 
 import copy
@@ -79,6 +81,7 @@ class NewDolphindbDatabase(DolphindbDatabase):
             self.session.run(CREATE_TRADE_DATA_TABLE_SCRIPT)
             self.session.run(CREATE_SIGN_DATA_TABLE_SCRIPT)
             self.session.run(CREATE_SIGNAL_TABLE_SCRIPT)
+            self.session.run(CREATE_TRENDFEATURES_TABLE_SCRIPT)
 
     def save_bar_data(self, bars: List[BarData]) -> bool:
         """保存k线数据"""
@@ -248,7 +251,6 @@ class NewDolphindbDatabase(DolphindbDatabase):
                 sleep(5)
 
         return True
-
 
     def save_trade_data(self, trades: List[MyTradeData]) -> bool:
         """"""
@@ -459,6 +461,121 @@ class NewDolphindbDatabase(DolphindbDatabase):
                 break
             except RuntimeError:
                 sleep(5)
+
+        return True
+
+    def save_trend_features_data(self, bars: List[TrendFeaturesData]) -> bool:
+        """保存k线数据"""
+        # 读取主键参数
+        bar0: TrendFeaturesData = bars[0]
+        symbol: str = bar0.symbol
+        exchange: Exchange = bar0.exchange
+        interval: Interval = bar0.interval
+        index_name: str = bar0.index_name
+        index_trend_var:str = str(bar0.index_trend_var)
+
+        # 转换为DataFrame写入数据库
+        data: List[dict] = []
+
+        for bar in bars:
+            # bar.datetime = convert_tz(bar.datetime)
+            # bar.trend_point_date = convert_tz(bar.trend_point_date)
+            dt = np.datetime64(convert_tz(bar.datetime))
+            trend_point_dt = np.datetime64(convert_tz(bar.trend_point_date))
+
+            d = {
+                "symbol": symbol,
+                "exchange": exchange.value,
+                "interval": interval.value,
+                "datetime": dt,
+                "close_price":float(bar.close_price),
+                "index_name" : index_name,
+                "index_trend_var" : str(index_trend_var),
+                "index_trend_now":int(bar.index_trend_now),
+                "trend_point_date":trend_point_dt,
+                "trend_point_price":float(bar.trend_point_price),
+                "trend_temp_point_price":float(bar.trend_temp_point_price),
+                "trend_cum_rate":float(bar.trend_cum_rate),
+                "trend_up_down_range":float(bar.trend_up_down_range),
+                "trend_cum_revers":float(bar.trend_cum_rate),
+                "trend_period_days":int(bar.trend_period_days),
+                "trend_up_nums":int(bar.trend_up_nums),
+                "trend_down_nums":int(bar.trend_down_nums),
+                "trend_linear_coef":float(bar.trend_linear_coef),
+                "trend_linear_r2":float(bar.trend_linear_r2),
+                "trend_linear_score":float(bar.trend_linear_score),
+            }
+
+            data.append(d)
+
+        df: pd.DataFrame = pd.DataFrame.from_records(data)
+
+        appender = ddb.PartitionedTableAppender(self.db_path, "trendfeatures", "datetime", self.pool)
+        while True:
+            try:
+                appender.append(df)
+                break
+            except RuntimeError:
+                sleep(5)
+
+        # # 计算已有K线数据的汇总
+        # table = self.session.loadTable(tableName="trendfeatures", dbPath=self.db_path)
+
+        # df_start: pd.DataFrame = (
+        #     table.select("*")
+        #     .where(f"symbol='{symbol}'")
+        #     .where(f"exchange='{exchange.value}'")
+        #     .where(f'interval="{interval.value}"')
+        #     .sort(bys=["datetime"]).top(1)
+        #     .toDF()
+        # )
+
+        # df_end: pd.DataFrame = (
+        #     table.select("*")
+        #     .where(f"symbol='{symbol}'")
+        #     .where(f"exchange='{exchange.value}'")
+        #     .where(f'interval="{interval.value}"')
+        #     .sort(bys=["datetime desc"]).top(1)
+        #     .toDF()
+        # )
+
+        # df_count: pd.DataFrame = (
+        #     table.select("count(*)")
+        #     .where(f"symbol='{symbol}'")
+        #     .where(f"exchange='{exchange.value}'")
+        #     .where(f'interval="{interval.value}"')
+        #     .toDF()
+        # )
+
+        # count: int = df_count["count"][0]
+        # start: datetime = df_start["datetime"][0]
+        # end: datetime = df_end["datetime"][0]
+
+        # # 更新K线汇总数据
+        # data: List[dict] = []
+
+        # dt = np.datetime64(datetime(2022, 1, 1))    # 该时间戳仅用于分区
+
+        # d: Dict = {
+        #     "symbol": symbol,
+        #     "exchange": exchange.value,
+        #     "interval": interval.value,
+        #     "count": count,
+        #     "start": start,
+        #     "end": end,
+        #     "datetime": dt,
+        # }
+        # data.append(d)
+
+        # df: pd.DataFrame = pd.DataFrame.from_records(data)
+
+        # appender = ddb.PartitionedTableAppender(self.db_path, "dailybar_overview", "datetime", self.pool)
+        # while True:
+        #     try:
+        #         appender.append(df)
+        #         break
+        #     except RuntimeError:
+        #         sleep(5)
 
         return True
 
@@ -869,6 +986,81 @@ class NewDolphindbDatabase(DolphindbDatabase):
 
         return mains
 
+    def load_trend_features_data(
+        self,
+        interval: Interval,
+        index_name: str,
+        index_trend_var: str,
+        symbol: str='',
+        start: datetime='2010-01-01',
+        end: datetime='2029-12-31'
+    ) -> List[TrendFeaturesData]:
+        """读取K线数据"""
+        # 转换时间格式
+        start = np.datetime64(start)
+        start: str = str(start).replace("-", ".")
+
+        end = np.datetime64(end)        
+        end: str = str(end).replace("-", ".")
+
+        table = self.session.loadTable(tableName="trendfeatures", dbPath=self.db_path)
+
+        if not symbol:
+            df: pd.DataFrame = (
+                table.select("*")
+                .where(f'interval="{interval.value}"')
+                .where(f"index_name='{index_name}'")
+                .where(f"index_trend_var='{index_trend_var}'")
+                .where(f"datetime>={start}")
+                .where(f"datetime<={end}")
+                .toDF()
+            )
+        else:
+            df: pd.DataFrame = (
+                table.select("*")
+                .where(f"symbol='{symbol}'")
+                .where(f'interval="{interval.value}"')
+                .where(f"index_name='{index_name}'")
+                .where(f"index_trend_var='{index_trend_var}'")
+                .where(f"datetime>={start}")
+                .where(f"datetime<={end}")
+                .toDF()
+            )
+
+        bars: List[TrendFeaturesData] = []
+        # 转换为BarData格式
+
+        for tp in df.itertuples():
+            dt = datetime.fromtimestamp(tp.datetime.to_pydatetime().timestamp(), DB_TZ)
+            trend_point_dt = datetime.fromtimestamp(tp.trend_point_date.to_pydatetime().timestamp(), DB_TZ)
+
+            bar = TrendFeaturesData(
+                symbol=tp.symbol,
+                exchange=Exchange(tp.exchange),
+                interval=Interval(tp.interval),
+                datetime=dt,
+                close_price=tp.close_price,
+                index_name = tp.index_name,
+                index_trend_var = index_trend_var,
+                index_trend_now=tp.index_trend_now,
+                trend_point_date=trend_point_dt,
+                trend_point_price=tp.trend_point_price,
+                trend_temp_point_price=tp.trend_temp_point_price,
+                trend_cum_rate=tp.trend_cum_rate,
+                trend_up_down_range=tp.trend_up_down_range,
+                trend_cum_revers=tp.trend_cum_revers,
+                trend_period_days=tp.trend_period_days,
+                trend_up_nums=tp.trend_up_nums,
+                trend_down_nums=tp.trend_down_nums,
+                trend_linear_coef=tp.trend_linear_coef,
+                trend_linear_r2=tp.trend_linear_r2,
+                trend_linear_score=tp.trend_linear_score,
+                gateway_name="DB"
+            )
+            bars.append(bar)
+
+        return bars
+
     def delete_daily_bar_data(
         self,
         symbol: str,
@@ -909,7 +1101,60 @@ class NewDolphindbDatabase(DolphindbDatabase):
         )
 
         return count
-    
+
+    def delete_trend_features_data(
+        self,
+        symbol: str,
+        interval: Interval,
+        index_name: str,
+        index_trend_var: str,
+        start: datetime='2010-01-01',
+        end: datetime='2029-12-31'
+    ) -> int:
+        """删除日线K线数据"""
+        # 加载数据表
+        table = self.session.loadTable(tableName="trendfeatures", dbPath=self.db_path)
+
+        # 统计数据量
+        df: pd.DataFrame = (
+            table.select("count(*)")
+            .where(f"symbol='{symbol}'")
+            .where(f'interval="{interval.value}"')
+            .where(f"index_name='{index_name}'")
+            .where(f"index_trend_var='{index_trend_var}'")
+            .where(f"datetime>={start}")
+            .where(f"datetime<={end}")
+            .toDF()
+        )
+        count = df["count"][0]
+
+        # 删除K线数据
+        (
+            table.delete()
+            .where(f"symbol='{symbol}'")
+            .where(f'interval="{interval.value}"')
+            .where(f"index_name='{index_name}'")
+            .where(f"index_trend_var='{index_trend_var}'")
+            .where(f"datetime>={start}")
+            .where(f"datetime<={end}")
+            .execute()
+        )
+
+        # # 删除K线汇总
+        # table = self.session.loadTable(tableName="dailybar_overview", dbPath=self.db_path)
+        # (
+        #     table.delete()
+        #      .where(f"symbol='{symbol}'")
+        #     .where(f'interval="{interval.value}"')
+        #     .where(f"index_name='{index_name}'")
+        #     .where(f"index_trend_var='{index_trend_var}'")
+        #     .where(f"datetime>={start}")
+        #     .where(f"datetime<={end}")
+        #     .execute()
+        # )
+
+        return count
+
     def delete_trade_data(
         self,
         strategy_num: str,
