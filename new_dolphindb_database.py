@@ -51,7 +51,7 @@ import copy
 
 from vnpy_dolphindb.dolphindb_database import DolphindbDatabase
 
-class NewDolphindbDatabase(DolphindbDatabase):
+class NewDolphindbDatabase(DolphindbDatabase):  
     """DolphinDB数据库接口"""
 
     def __init__(self) -> None:
@@ -619,7 +619,7 @@ class NewDolphindbDatabase(DolphindbDatabase):
         exchange: Exchange,
         interval: Interval,
         start: datetime,
-        end: datetime
+        end: datetime = datetime(2029,12,31)
     ) -> List[DailyBarData]:
         """读取K线数据"""
         # 转换时间格式

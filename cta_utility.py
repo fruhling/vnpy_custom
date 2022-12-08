@@ -103,6 +103,39 @@ def contract_rule_rq(contract:str, domain_contracts_rule = domain_contracts_rule
     symbol_key = symbolHead + symbolNumber
     return domain_contracts_rule.get(symbol_key,None)
 
+def generate_dailybar(min_bar_list):
+    """利用当天分钟bar，返回日K线"""
+    if len(min_bar_list)>0:
+        symbol = min_bar_list[-1].symbol
+        exchange = min_bar_list[-1].exchange
+        bar_datetime = generate_trading_day(min_bar_list[0].datetime)
+        
+        daily_open_price = [bar.open_price for bar in min_bar_list][0]
+        daily_close_price = [bar.close_price for bar in min_bar_list][-1]
+        daily_high_price = max([bar.high_price for bar in min_bar_list])
+        daily_low_price = max([bar.low_price for bar in min_bar_list])
+        daily_open_interest = [bar.open_interest for bar in min_bar_list][-1]
+        daily_volume = sum([bar.volume for bar in min_bar_list])
+        daily_turnover = sum([bar.turnover for bar in min_bar_list])
+        
+        dailybar = BarData(
+        symbol=symbol,
+        exchange=exchange,
+        datetime=bar_datetime,
+        interval=Interval.DAILY,
+        volume=daily_volume,
+        turnover=daily_turnover,
+        open_interest=daily_open_interest,
+        open_price=daily_open_price,
+        high_price=daily_high_price,
+        low_price=daily_low_price,
+        close_price=daily_close_price,
+        gateway_name="DB"
+        )
+        return dailybar
+    else:
+        return
+
 def generate_my_tradedata(strategy_str:str ,trade: TradeData, display:bool ,calculate:bool):
     """生成用于入postgresql中的交易数据，增加了策略名，策略周期等信息"""
     trades = []
@@ -1437,3 +1470,5 @@ class TrendPoint(object):
                 self.temp_init_bar = self.temp_trend_bar
                 self.temp_trend_bar = bar
                 self.temp_max_verse = 0
+
+              

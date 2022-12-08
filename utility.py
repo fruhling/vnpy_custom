@@ -507,6 +507,30 @@ def return_domain_firstday(contract):
     #     return None
     return str(d[0])[0:10]
 
+def query_bar_data(
+    symbol: str,
+    exchange: Exchange,
+    interval: Interval,
+    start: datetime
+    ) -> int:
+    """
+    Query bar data from RQData.
+    """
+    datafeed: BaseDatafeed = get_datafeed()
+    datafeed.init()
+   
+    req = HistoryRequest(
+        symbol=symbol,
+        exchange=exchange,
+        interval=interval,
+        start=start,
+        end=datetime.now(LOCAL_TZ)
+    )
+
+    data = datafeed.query_bar_history(req)
+    rqdatac.reset()
+
+    return data
 #汇总工具
       
 class StrategyDaily(object):
