@@ -250,21 +250,6 @@ class DbDailyBar(Model):
         indexes = ((("symbol", "exchange", "interval", "datetime"), True),)
 
 
-    """K线汇总数据表映射对象"""
-
-    id = AutoField()
-
-    symbol: str = CharField()
-    exchange: str = CharField()
-    interval: str = CharField()
-    count: int = IntegerField()
-    start: datetime = DateTimeField()
-    end: datetime = DateTimeField()
-
-    class Meta:
-        database = db
-        indexes = ((("symbol", "exchange", "interval"), True),)
-
 class DbDailyBarOverview(Model):
     """K线汇总数据表映射对象"""
 
