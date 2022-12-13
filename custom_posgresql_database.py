@@ -42,17 +42,17 @@ from vnpy.trader.database import (
     convert_tz
 )
 
-from vnpy.trader.setting import SETTINGS
-
 vnpy_home_path = Path.home().joinpath(".vntrader")
+custom_setting_filename = vnpy_home_path.joinpath("vnpy_custom_setting.json")
+custom_setting = load_json(custom_setting_filename)
 
 db = PeeweePostgresqlDatabase(
-        database=SETTINGS["database.database"],
-        user=SETTINGS["database.user"],
-        password=SETTINGS["database.password"],
-        host=SETTINGS["database.host"],
-        port=SETTINGS["database.port"],
-        autorollback=True
+    database=custom_setting["custom_database_database"],
+    user=custom_setting["custom_database_user"],
+    password=custom_setting["custom_database_password"],
+    host=custom_setting["custom_database_host"],
+    port=custom_setting["custom_database_port"],
+    autorollback=True
 )
 
 #write by kaki, mytradedata model for db
@@ -329,7 +329,7 @@ class DbTrendFeatures(Model):
         database = db
         indexes = ((("datetime","symbol","index_name","index_trend_var"), True),)
 
-class NewPostgresqlDatabase(BaseDatabase):
+class CustomPostgresqlDatabase(BaseDatabase):
     """PostgreSQL数据库接口"""
 
     def __init__(self) -> None:

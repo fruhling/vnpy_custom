@@ -207,9 +207,9 @@ class TrendFeaturesData(BaseData):
     trend_cum_rate: float = 0
     trend_up_down_range: float = 0
     trend_cum_revers: float = 0
-    trend_period_days: float = 0
-    trend_up_nums: float = 0
-    trend_down_nums: float = 0
+    trend_period_days: int = 0
+    trend_up_nums: int = 0
+    trend_down_nums: int = 0
     trend_linear_coef: float = 0
     trend_linear_r2: float = 0
     trend_linear_score: float = 0

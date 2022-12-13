@@ -1108,8 +1108,8 @@ class NewDolphindbDatabase(DolphindbDatabase):
         interval: Interval,
         index_name: str,
         index_trend_var: str,
-        start: datetime='2010-01-01',
-        end: datetime='2029-12-31'
+        start: datetime=datetime(2010,1,1),
+        end: datetime=datetime(2029,12,31)
     ) -> int:
         """删除日线K线数据"""
         # 加载数据表
