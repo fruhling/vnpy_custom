@@ -393,15 +393,15 @@ class CustomPostgresqlDatabase(BaseDatabase):
             overview.symbol = symbol
             overview.exchange = exchange.value
             overview.interval = interval.value
-            overview.start = bars[0].datetime
-            overview.end = bars[-1].datetime
+            overview.start = convert_tz(bars[0].datetime)
+            overview.end = convert_tz(bars[-1].datetime)
             overview.count = len(bars)
         elif stream:
-            overview.end = bars[-1].datetime
+            overview.end = convert_tz(bars[-1].datetime)
             overview.count += len(bars)
         else:
-            overview.start = min(bars[0].datetime, overview.start)
-            overview.end = max(bars[-1].datetime, overview.end)
+            overview.start = min(convert_tz(bars[0].datetime), overview.start)
+            overview.end = max(convert_tz(bars[-1].datetime), overview.end)
 
             s: ModelSelect = DbBarData.select().where(
                 (DbBarData.symbol == symbol)
@@ -916,12 +916,12 @@ class CustomPostgresqlDatabase(BaseDatabase):
             overview.symbol = symbol
             overview.exchange = exchange.value
             overview.interval = interval.value
-            overview.start = bars[0].datetime
-            overview.end = bars[-1].datetime
+            overview.start = convert_tz(bars[0].datetime)
+            overview.end = convert_tz(bars[-1].datetime)
             overview.count = len(bars)
         else:
-            overview.start = min(bars[0].datetime, overview.start)
-            overview.end = max(bars[-1].datetime, overview.end)
+            overview.start = min(convert_tz(bars[0].datetime), overview.start)
+            overview.end = max(convert_tz(bars[-1].datetime), overview.end)
 
             s: ModelSelect = DbDailyBar.select().where(
                 (DbDailyBar.symbol == symbol)
