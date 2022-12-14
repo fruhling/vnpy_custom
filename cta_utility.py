@@ -9,6 +9,7 @@ from dateutil.relativedelta import relativedelta
 from tzlocal import get_localzone
 import re
 import json
+import ssl
 import interval
 from pathlib import Path
 from typing import Callable, Dict, Tuple, Union
@@ -757,16 +758,15 @@ def send_emails(subject,content,receivers):
 
     #登录并发送邮件
     try:
-        smtpObj = smtplib.SMTP_SSL(mail_host,"465") 
-        #连接到服务器
-        # smtpObj.connect(mail_host,25)
-        #登录到服务器
-        smtpObj.login(mail_user,mail_pass) 
-        #发送
-        smtpObj.sendmail(
-            sender,receivers,message.as_string()) 
+        context = ssl.create_default_context()
+        with smtplib.SMTP(mail_host, 587) as server:
+            server.ehlo()  # Can be omitted
+            server.starttls(context=context)
+            server.ehlo()  # Can be omitted
+            server.login(mail_user, mail_pass)
+            server.sendmail(sender,receivers,message.as_string())
+      
         #退出
-        smtpObj.quit() 
         print('success')
     except smtplib.SMTPException as e:
         print('error',e) #打印错误
