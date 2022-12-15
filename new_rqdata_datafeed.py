@@ -1,14 +1,17 @@
 from typing import List, Optional
-from datetime import timedelta
+from datetime import datetime, timedelta
 
+from pandas import DataFrame
 
 from rqdatac.services.future import get_member_rank
 from rqdatac.services.get_price import get_price
 
 from vnpy.trader.constant import Exchange
 from .myobject import DailyBarData, MemberRankData
+from vnpy.trader.constant import Exchange, Interval
 from vnpy.trader.object import HistoryRequest
 from vnpy.trader.utility import round_to
+from vnpy.trader.object import BarData, TickData, HistoryRequest
 
 
 
@@ -85,6 +88,73 @@ class NewRqdataDatafeed(RqdataDatafeed):
         """"""
         super().__init__()
         
+    def query_bar_history(self, req: HistoryRequest) -> Optional[List[BarData]]:
+        """查询K线数据"""
+        if not self.inited:
+            n: bool = self.init()
+            if not n:
+                return []
+
+        symbol: str = req.symbol
+        exchange: Exchange = req.exchange
+        interval: Interval = req.interval
+        start: datetime = req.start
+        end: datetime = req.end
+
+        rq_symbol: str = to_rq_symbol(symbol, exchange)
+
+        rq_interval: str = INTERVAL_VT2RQ.get(interval)
+        if not rq_interval:
+            return None
+
+        # 为了将米筐时间戳（K线结束时点）转换为VeighNa时间戳（K线开始时点）
+        adjustment: timedelta = INTERVAL_ADJUSTMENT_MAP[interval]
+
+        # 为了查询夜盘数据
+        end += timedelta(1)
+
+        # 只对衍生品合约才查询持仓量数据
+        fields: list = ["open", "high", "low", "close", "volume", "total_turnover"]
+        if not symbol.isdigit():
+            fields.append("open_interest")
+        print(rq_symbol)
+        df: DataFrame = get_price(
+            rq_symbol,
+            frequency=rq_interval,
+            fields=fields,
+            start_date=start,
+            end_date=end,
+            adjust_type="none"
+        )
+
+        data: List[BarData] = []
+
+        if df is not None:
+            # 填充NaN为0
+            df.fillna(0, inplace=True)
+
+            for row in df.itertuples():
+                dt: datetime = row.Index[1].to_pydatetime() - adjustment
+                dt: datetime = dt.replace(tzinfo=CHINA_TZ)
+
+                bar: BarData = BarData(
+                    symbol=symbol,
+                    exchange=exchange,
+                    interval=interval,
+                    datetime=dt,
+                    open_price=round_to(row.open, 0.000001),
+                    high_price=round_to(row.high, 0.000001),
+                    low_price=round_to(row.low, 0.000001),
+                    close_price=round_to(row.close, 0.000001),
+                    volume=row.volume,
+                    turnover=row.total_turnover,
+                    open_interest=getattr(row, "open_interest", 0),
+                    gateway_name="RQ"
+                )
+
+                data.append(bar)
+
+        return data
 
     def query_daily_bar_history(self, req: HistoryRequest) -> Optional[List[DailyBarData]]:
         """查询K线数据"""
