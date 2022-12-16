@@ -249,7 +249,6 @@ class DbDailyBar(Model):
         database = db
         indexes = ((("symbol", "exchange", "interval", "datetime"), True),)
 
-
 class DbDailyBarOverview(Model):
     """K线汇总数据表映射对象"""
 

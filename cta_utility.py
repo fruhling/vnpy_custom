@@ -29,7 +29,7 @@ from email.mime.multipart import MIMEMultipart
 
 from seatable_api import Base, context
 from vnpy.trader.object import TradeData, BarData
-from vnpy_custom.myobject import MyTradeData, SignData
+from vnpy_custom.myobject import MyTradeData, SignData, DailyBarData
 from vnpy.trader.constant import Exchange, Interval, Offset, Direction
 from vnpy.trader.utility import generate_vt_symbol, extract_vt_symbol, load_json, save_json, BarGenerator, ArrayManager, get_file_path
 
@@ -118,8 +118,9 @@ def generate_dailybar(min_bar_list):
         daily_open_interest = [bar.open_interest for bar in min_bar_list][-1]
         daily_volume = sum([bar.volume for bar in min_bar_list])
         daily_turnover = sum([bar.turnover for bar in min_bar_list])
+        daily_settlement = round((daily_turnover + 1) / (daily_volume + 1),2)
         
-        dailybar = BarData(
+        dailybar = DailyBarData(
         symbol=symbol,
         exchange=exchange,
         datetime=bar_datetime,
@@ -131,6 +132,10 @@ def generate_dailybar(min_bar_list):
         high_price=daily_high_price,
         low_price=daily_low_price,
         close_price=daily_close_price,
+        settlement=daily_settlement,
+        prev_settlement=0.0,
+        limit_up= 0.0,
+        limit_down= 0.0,
         gateway_name="DB"
         )
         return dailybar
