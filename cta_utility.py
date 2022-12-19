@@ -325,7 +325,7 @@ def get_contract_rule(symbol:str):
     """通过contractRule.csv获取品种基础规则"""
     symbolHead = get_symbol_head(symbol)
     contractRuleDict = read_csv(Path.home().joinpath(".vntrader").joinpath("contractRule.csv"), index_col='symbolHead',encoding='gbk').to_dict(orient='index')
-    return contractRuleDict[symbolHead]
+    return contractRuleDict.get(symbolHead)
 
 def get_contract_number(symbol:str)-> str:
     """获取合约数字部分，郑州补足4位数字，用于生成rqdata规划的合约代码"""
