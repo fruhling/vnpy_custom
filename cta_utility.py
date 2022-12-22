@@ -347,6 +347,23 @@ def get_contract_number(symbol:str)-> str:
         return f"{year}{month}"
     else:
         return f"{symbol[-4:]}"
+def get_trading_day_now() -> datetime:
+    """返回交易日，用于处理夜盘跨日与跨周末"""
+    time_now = datetime.now()
+    if time_now.hour > 8 and time_now.hour <= 20:
+        # return time_now.strftime('%Y%m%d')
+        return time_now.replace(hour=0,minute=0, second=0, microsecond=0)
+    else:
+        if time_now.hour <= 8 and time_now.weekday() <= 4:
+            return time_now.replace(hour=0,minute=0, second=0, microsecond=0)
+        elif time_now.hour <= 8 and time_now.weekday() > 4:
+            return (time_now + timedelta(days=2)).replace(hour=0,minute=0, second=0, microsecond=0)
+        elif time_now.hour >= 21 and time_now.weekday() < 4:
+            return (time_now + timedelta(days=1)).replace(hour=0,minute=0, second=0, microsecond=0)
+        elif time_now.hour >= 21 and time_now.weekday() >= 4:
+            return (time_now + timedelta(days=3)).replace(hour=0,minute=0, second=0, microsecond=0)
+        else:
+            pass
 
 def get_trading_nday_before(date:str, n:int, trading_day_dict=trading_day_dict)->str:
     """返回某日前第n个交易日日期，包含当天"""
