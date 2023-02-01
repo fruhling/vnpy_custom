@@ -43,7 +43,7 @@ from vnpy.trader.database import (
 )
 
 vnpy_home_path = Path.home().joinpath(".vntrader")
-custom_setting_filename = vnpy_home_path.joinpath("vnpy_custom_setting.json")
+custom_setting_filename = vnpy_home_path.joinpath("vt_setting.json")
 custom_setting = load_json(custom_setting_filename)
 
 db = PeeweePostgresqlDatabase(

@@ -1,4 +1,5 @@
-from datetime import datetime
+from datetime import datetime, timedelta
+
 import warnings
 
 import numpy as np
@@ -8,12 +9,88 @@ import matplotlib.pyplot as plt
 from statsmodels.stats.diagnostic import acorr_ljungbox
 from statsmodels.tsa.stattools import adfuller as ADF
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf, acf
+
+
 import talib
 
 from vnpy.trader.constant import Exchange, Interval
-from vnpy.trader.database import BaseDatabase, get_database
+from vnpy.trader.database import get_database
+from vnpy.trader.utility import ArrayManager
+from vnpy.trader.object import BarData
+
+
+
 warnings.filterwarnings("ignore")
 database = get_database()
+
+def random_test(close_price):
+    """"""
+    acorr_result = acorr_ljungbox(close_price, lags=1)
+    p_value = acorr_result[1]
+    if p_value < 0.05:
+        output("第二步：随机性检验：非纯随机性")
+    else:
+        output("第二步：随机性检验：纯随机性")
+    output(f"白噪声检验结果:{acorr_result}\n")
+
+
+def stability_test(close_price):
+    """"""
+    statitstic = ADF(close_price)
+    t_s = statitstic[1]
+    t_c = statitstic[4]["10%"]
+
+    if t_s > t_c:
+        output("第三步：平稳性检验：存在单位根，时间序列不平稳")
+    else:
+        output("第三步：平稳性检验：不存在单位根，时间序列平稳")
+
+    output(f"ADF检验结果：{statitstic}\n")
+
+
+def autocorrelation_test(close_price):
+    """"""
+    output("第四步：画出自相关性图，观察自相关特性")
+
+    plot_acf(close_price, lags=60)
+    plt.show()
+
+    plot_pacf(close_price, lags=60).show()
+    plt.show()
+
+
+def statitstic_info(df):
+    """"""
+    mean = round(df.mean(), 4)
+    median = round(df.median(), 4)
+    std = round(df.std(),4)
+    output(f"样本平均数：{mean}, 中位数: {median}, 标准差:{std}")
+
+    skew = round(df.skew(), 4)
+    kurt = round(df.kurt(), 4)
+
+    if skew == 0:
+        skew_attribute = "对称分布"
+    elif skew > 0:
+        skew_attribute = "分布偏左"
+    else:
+        skew_attribute = "分布偏右"
+
+    if kurt == 0:
+        kurt_attribute = "正态分布"
+    elif kurt > 0:
+        kurt_attribute = "分布陡峭"
+    else:
+        kurt_attribute = "分布平缓"
+
+    output(f"偏度为：{skew}，属于{skew_attribute}；峰度为：{kurt}，属于{kurt_attribute}\n")
+
+
+def output(msg):
+    """
+    Output message of backtesting engine.
+    """
+    print(f"{datetime.now()}\t{msg}")
 
 
 class DataAnalysis:
@@ -378,72 +455,3 @@ class DataAnalysis:
         # data["ATR"].plot(figsize=(20, 3), title="ATR")
         plt.show()
 
-
-def random_test(close_price):
-    """"""
-    acorr_result = acorr_ljungbox(close_price, lags=1)
-    p_value = acorr_result[1]
-    if p_value < 0.05:
-        output("第二步：随机性检验：非纯随机性")
-    else:
-        output("第二步：随机性检验：纯随机性")
-    output(f"白噪声检验结果:{acorr_result}\n")
-
-
-def stability_test(close_price):
-    """"""
-    statitstic = ADF(close_price)
-    t_s = statitstic[1]
-    t_c = statitstic[4]["10%"]
-
-    if t_s > t_c:
-        output("第三步：平稳性检验：存在单位根，时间序列不平稳")
-    else:
-        output("第三步：平稳性检验：不存在单位根，时间序列平稳")
-
-    output(f"ADF检验结果：{statitstic}\n")
-
-
-def autocorrelation_test(close_price):
-    """"""
-    output("第四步：画出自相关性图，观察自相关特性")
-
-    plot_acf(close_price, lags=60)
-    plt.show()
-
-    plot_pacf(close_price, lags=60).show()
-    plt.show()
-
-
-def statitstic_info(df):
-    """"""
-    mean = round(df.mean(), 4)
-    median = round(df.median(), 4)
-    std = round(df.std(),4)
-    output(f"样本平均数：{mean}, 中位数: {median}, 标准差:{std}")
-
-    skew = round(df.skew(), 4)
-    kurt = round(df.kurt(), 4)
-
-    if skew == 0:
-        skew_attribute = "对称分布"
-    elif skew > 0:
-        skew_attribute = "分布偏左"
-    else:
-        skew_attribute = "分布偏右"
-
-    if kurt == 0:
-        kurt_attribute = "正态分布"
-    elif kurt > 0:
-        kurt_attribute = "分布陡峭"
-    else:
-        kurt_attribute = "分布平缓"
-
-    output(f"偏度为：{skew}，属于{skew_attribute}；峰度为：{kurt}，属于{kurt_attribute}\n")
-
-
-def output(msg):
-    """
-    Output message of backtesting engine.
-    """
-    print(f"{datetime.now()}\t{msg}")
