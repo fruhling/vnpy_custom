@@ -17,13 +17,15 @@ from pandas import read_csv
 import numpy as np
 import talib
 
+import vnpy_custom
 from vnpy.trader.object import TradeData, BarData
 from vnpy_custom.myobject import MyTradeData, SignData, DailyBarData
 from vnpy.trader.constant import Exchange, Interval, Offset, Direction
 from vnpy.trader.utility import generate_vt_symbol, load_json, BarGenerator, ArrayManager
 
 LOCAL_TZ = get_localzone()
-trading_day_dict = load_json(os.path.dirname(__file__)+"/data/trading_days.json")
+trading_day_dict = load_json(os.path.dirname(vnpy_custom.__file__) + "/data/trading_days.json")
+
 
 def bartime_to_signtime(bartime: datetime, timecover_dict: dict, interval: int = 5) -> datetime:
     """cover bartime to signtime，交易信号入库，与K线时间对齐"""
@@ -48,7 +50,8 @@ def cal_daily_var(open, high, low):
 
 
 def cal_trading_statistic(trading_list):
-    """计算最近几次交易的重要数据
+    """
+    计算最近几次交易的重要数据
     sum_profit, avg_profit, win_rate,holding_klines_mean,open_price_deviate_mean_value
     """
     if trading_list:
@@ -391,6 +394,26 @@ def get_trading_nday_before(date: str, n: int, trading_day_dict=trading_day_dict
     else:
         print('日期超出可查询范围')
         return None
+
+
+def if_trading_day(query_day: str, trading_day_dict=trading_day_dict) -> bool:
+    """判断某天是否是交易日"""
+    # if trading_day_dict:
+    #     last_trading_day_in_dict = max(trading_day_dict.keys())
+    #     print("last_trading_day_in_dict:", last_trading_day_in_dict)
+
+    if not isinstance(query_day, str):
+        query_day = datetime.strftime(query_day, '%Y-%m-%d')
+    query_day = query_day[:10]
+    print(query_day)
+    if_is_trading_day = trading_day_dict.get(query_day, None)
+    if if_is_trading_day is None:
+        print('日期超出可查询范围')
+        return None
+    elif if_is_trading_day:
+        return True
+    else:
+        return False
 
 
 def get_last_trading_day_in_the_same_month(date: str, trading_day_dict=trading_day_dict) -> str:
