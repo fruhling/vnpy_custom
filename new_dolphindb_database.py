@@ -1,6 +1,7 @@
-from typing import Dict, List
-from datetime import datetime
+import typing
+import datetime
 from time import sleep
+import copy
 
 import numpy as np
 import pandas as pd
@@ -17,14 +18,12 @@ from vnpy.trader.database import (
     convert_tz
 )
 from vnpy.trader.setting import SETTINGS
-
 from vnpy_dolphindb.dolphindb_script import (
     CREATE_DATABASE_SCRIPT,
     CREATE_BAR_TABLE_SCRIPT,
     CREATE_TICK_TABLE_SCRIPT,
     CREATE_OVERVIEW_TABLE_SCRIPT
 )
-
 from .new_dolphindb_script import (
     CREATE_TICK_OVERVIEW_TABLE_SCRIPT,
     CREATE_DAILY_BAR_TABLE_SCRIPT,
@@ -34,24 +33,21 @@ from .new_dolphindb_script import (
     CREATE_SIGNAL_TABLE_SCRIPT,
     CREATE_TRENDFEATURES_TABLE_SCRIPT
 )
-
 from vnpy.trader.constant import Direction, Offset
 from .myobject import (
-    MyTradeData, 
-    SignData, 
-    DailyBarData, 
-    SignalData, 
+    MyTradeData,
+    SignData,
+    DailyBarData,
+    SignalData,
     MemberRankData,
-    MainData, 
+    MainData,
     DailyBarOverview,
     TrendFeaturesData
 )
-
-import copy
-
 from vnpy_dolphindb.dolphindb_database import DolphindbDatabase
 
-class NewDolphindbDatabase(DolphindbDatabase):  
+
+class NewDolphindbDatabase(DolphindbDatabase):
     """DolphinDB数据库接口"""
 
     def __init__(self) -> None:
@@ -83,7 +79,7 @@ class NewDolphindbDatabase(DolphindbDatabase):
             self.session.run(CREATE_SIGNAL_TABLE_SCRIPT)
             self.session.run(CREATE_TRENDFEATURES_TABLE_SCRIPT)
 
-    def save_bar_data(self, bars: List[BarData]) -> bool:
+    def save_bar_data(self, bars: typing.List[BarData]) -> bool:
         """保存k线数据"""
         # 读取主键参数
         bar: BarData = bars[0]
@@ -92,7 +88,7 @@ class NewDolphindbDatabase(DolphindbDatabase):
         interval: Interval = bar.interval
 
         # 转换为DatFrame写入数据库
-        data: List[dict] = []
+        data: typing.List[dict] = []
 
         for bar in bars:
             dt = np.datetime64(convert_tz(bar.datetime))
@@ -153,15 +149,15 @@ class NewDolphindbDatabase(DolphindbDatabase):
         )
 
         count: int = df_count["count"][0]
-        start: datetime = df_start["datetime"][0]
-        end: datetime = df_end["datetime"][0]
+        start: datetime.datetime = df_start["datetime"][0]
+        end: datetime.datetime = df_end["datetime"][0]
 
         # 更新K线汇总数据
-        data: List[dict] = []
+        data: typing.List[dict] = []
 
-        dt = np.datetime64(datetime(2022, 1, 1))    # 该时间戳仅用于分区
+        dt = np.datetime64(datetime.datetime(2022, 1, 1))  # 该时间戳仅用于分区
 
-        d: Dict = {
+        d: typing.Dict = {
             "symbol": symbol,
             "exchange": exchange.value,
             "interval": interval.value,
@@ -185,14 +181,14 @@ class NewDolphindbDatabase(DolphindbDatabase):
 
         return True
 
-    def save_tick_data(self, ticks: List[TickData]) -> bool:
+    def save_tick_data(self, ticks: typing.List[TickData]) -> bool:
         """保存TICK数据"""
-        data: List[dict] = []
+        data: typing.List[dict] = []
 
         for tick in ticks:
             dt = np.datetime64(convert_tz(tick.datetime))
 
-            d: Dict = {
+            d: typing.Dict = {
                 "symbol": tick.symbol,
                 "exchange": tick.exchange.value,
                 "datetime": dt,
@@ -252,20 +248,19 @@ class NewDolphindbDatabase(DolphindbDatabase):
 
         return True
 
-    def save_trade_data(self, trades: List[MyTradeData]) -> bool:
+    def save_trade_data(self, trades: typing.List[MyTradeData]) -> bool:
         """"""
         # Store key parameters
-        #"strategy_class","strategy_property","strategy_name","strategy_num","symbol", "exchange", "tradeid", "datetime"
-
+        # "strategy_class","strategy_property","strategy_name","strategy_num","symbol", "exchange", "tradeid", "datetime"
 
         # Convert bar object to dict and adjust timezone
-        data: List[dict] =[]
+        data: typing.List[dict] = []
 
         for trade in trades:
             d = copy.deepcopy(trade.__dict__)
             d['datetime'] = np.datetime64(convert_tz(d['datetime']))
-            d_temp : Dict={
-                "strategy_class":d["strategy_class"],
+            d_temp: typing.Dict = {
+                "strategy_class": d["strategy_class"],
                 "strategy_name": d["strategy_name"],
                 "strategy_num": d["strategy_num"],
                 "strategy_period": int(d["strategy_period"]),
@@ -280,7 +275,7 @@ class NewDolphindbDatabase(DolphindbDatabase):
                 "volume": float(d["volume"]),
                 "display": bool(d["display"]),
                 "calculate": bool(d["calculate"])
-                }
+            }
 
             data.append(d_temp)
 
@@ -293,21 +288,20 @@ class NewDolphindbDatabase(DolphindbDatabase):
             except RuntimeError:
                 sleep(5)
 
-    def save_sign_data(self, signs: List[SignData]) -> bool:
+    def save_sign_data(self, signs: typing.List[SignData]) -> bool:
         """"""
         # Store key parameters
-        #"strategy_class","strategy_property","strategy_name","strategy_num","symbol", "exchange", "tradeid", "datetime"
-
+        # "strategy_class","strategy_property","strategy_name","strategy_num","symbol", "exchange", "tradeid", "datetime"
 
         # Convert bar object to dict and adjust timezone
-        data: List[dict] = []
+        data: typing.List[dict] = []
 
         for sign in signs:
             d = copy.deepcopy(sign.__dict__)
             d['order_time'] = np.datetime64(convert_tz(d['order_time']))
             d['insert_time'] = np.datetime64(convert_tz(d['insert_time']))
-            d_temp:Dict={
-                "tradingday":d["tradingday"],
+            d_temp: typing.Dict = {
+                "tradingday": d["tradingday"],
                 "order_time": d['order_time'],
                 "strategy_group": d["strategy_group"],
                 "strategy_id": d["strategy_id"],
@@ -328,22 +322,22 @@ class NewDolphindbDatabase(DolphindbDatabase):
             except RuntimeError:
                 sleep(5)
 
-    def save_signal_data(self, signals: List[SignalData]) -> bool:
+    def save_signal_data(self, signals: typing.List[SignalData]) -> bool:
         """存入signal_data，要求输入[SignalData]"""
         # Store key parameters
-        #"strategy_num","symbol", "datetime"
+        # "strategy_num","symbol", "datetime"
         # Convert bar object to dict and adjust timezone
-        data: List[dict] = []
+        data: typing.List[dict] = []
 
         for signal in signals:
             d = copy.deepcopy(signal.__dict__)
             d['datetime'] = np.datetime64(convert_tz(d['datetime']))
-            d_temp: Dict = {
-            "symbol": d['symbol'],
-            "datetime": d['datetime'],
-            "interval": d["interval"].value,
-            "strategy_num": d['strategy_num'],
-            "pos": d['pos']
+            d_temp: typing.Dict = {
+                "symbol": d['symbol'],
+                "datetime": d['datetime'],
+                "interval": d["interval"].value,
+                "strategy_num": d['strategy_num'],
+                "pos": d['pos']
             }
             # print(d_temp)
             data.append(d_temp)
@@ -357,8 +351,8 @@ class NewDolphindbDatabase(DolphindbDatabase):
             except RuntimeError:
                 sleep(5)
         return True
-    
-    def save_daily_bar_data(self, bars: List[DailyBarData]) -> bool:
+
+    def save_daily_bar_data(self, bars: typing.List[DailyBarData]) -> bool:
         """保存k线数据"""
         # 读取主键参数
         bar0: BarData = bars[0]
@@ -367,7 +361,7 @@ class NewDolphindbDatabase(DolphindbDatabase):
         interval: Interval = bar0.interval
 
         # 转换为DatFrame写入数据库
-        data: List[dict] = []
+        data: typing.List[dict] = []
 
         for bar in bars:
             bar.datetime = convert_tz(bar.datetime)
@@ -433,15 +427,15 @@ class NewDolphindbDatabase(DolphindbDatabase):
         )
 
         count: int = df_count["count"][0]
-        start: datetime = df_start["datetime"][0]
-        end: datetime = df_end["datetime"][0]
+        start: datetime.datetime = df_start["datetime"][0]
+        end: datetime.datetime = df_end["datetime"][0]
 
         # 更新K线汇总数据
-        data: List[dict] = []
+        data: typing.List[dict] = []
 
-        dt = np.datetime64(datetime(2022, 1, 1))    # 该时间戳仅用于分区
+        dt = np.datetime64(datetime.datetime(2022, 1, 1))  # 该时间戳仅用于分区
 
-        d: Dict = {
+        d: typing.Dict = {
             "symbol": symbol,
             "exchange": exchange.value,
             "interval": interval.value,
@@ -464,7 +458,7 @@ class NewDolphindbDatabase(DolphindbDatabase):
 
         return True
 
-    def save_trend_features_data(self, bars: List[TrendFeaturesData]) -> bool:
+    def save_trend_features_data(self, bars: typing.List[TrendFeaturesData]) -> bool:
         """保存k线数据"""
         # 读取主键参数
         bar0: TrendFeaturesData = bars[0]
@@ -472,10 +466,10 @@ class NewDolphindbDatabase(DolphindbDatabase):
         exchange: Exchange = bar0.exchange
         interval: Interval = bar0.interval
         index_name: str = bar0.index_name
-        index_trend_var:str = str(bar0.index_trend_var)
+        index_trend_var: str = str(bar0.index_trend_var)
 
         # 转换为DataFrame写入数据库
-        data: List[dict] = []
+        data: typing.List[dict] = []
 
         for bar in bars:
             # bar.datetime = convert_tz(bar.datetime)
@@ -488,22 +482,22 @@ class NewDolphindbDatabase(DolphindbDatabase):
                 "exchange": exchange.value,
                 "interval": interval.value,
                 "datetime": dt,
-                "close_price":float(bar.close_price),
-                "index_name" : index_name,
-                "index_trend_var" : str(index_trend_var),
-                "index_trend_now":int(bar.index_trend_now),
-                "trend_point_date":trend_point_dt,
-                "trend_point_price":float(bar.trend_point_price),
-                "trend_temp_point_price":float(bar.trend_temp_point_price),
-                "trend_cum_rate":float(bar.trend_cum_rate),
-                "trend_up_down_range":float(bar.trend_up_down_range),
-                "trend_cum_revers":float(bar.trend_cum_rate),
-                "trend_period_days":int(bar.trend_period_days),
-                "trend_up_nums":int(bar.trend_up_nums),
-                "trend_down_nums":int(bar.trend_down_nums),
-                "trend_linear_coef":float(bar.trend_linear_coef),
-                "trend_linear_r2":float(bar.trend_linear_r2),
-                "trend_linear_score":float(bar.trend_linear_score),
+                "close_price": float(bar.close_price),
+                "index_name": index_name,
+                "index_trend_var": str(index_trend_var),
+                "index_trend_now": int(bar.index_trend_now),
+                "trend_point_date": trend_point_dt,
+                "trend_point_price": float(bar.trend_point_price),
+                "trend_temp_point_price": float(bar.trend_temp_point_price),
+                "trend_cum_rate": float(bar.trend_cum_rate),
+                "trend_up_down_range": float(bar.trend_up_down_range),
+                "trend_cum_revers": float(bar.trend_cum_rate),
+                "trend_period_days": int(bar.trend_period_days),
+                "trend_up_nums": int(bar.trend_up_nums),
+                "trend_down_nums": int(bar.trend_down_nums),
+                "trend_linear_coef": float(bar.trend_linear_coef),
+                "trend_linear_r2": float(bar.trend_linear_r2),
+                "trend_linear_score": float(bar.trend_linear_score),
             }
 
             data.append(d)
@@ -579,21 +573,21 @@ class NewDolphindbDatabase(DolphindbDatabase):
 
         return True
 
-    def save_member_rank_data(self, members: List[MemberRankData]) -> bool:
+    def save_member_rank_data(self, members: typing.List[MemberRankData]) -> bool:
         member: MemberRankData = members[0]
         symbol: str = member.symbol
 
         # 转换为DatFrame写入数据库
-        data: List[dict] = []
+        data: typing.List[dict] = []
 
         for member in members:
             dt = np.datetime64(convert_tz(member.datetime), 'ns')
-            #dt = np.array(convert_tz(bar.datetime), dtype='datetime64[ns]')
+            # dt = np.array(convert_tz(bar.datetime), dtype='datetime64[ns]')
 
             d = {
                 "symbol": symbol,
                 "datetime": dt,
-                "member_name":member.member_name,
+                "member_name": member.member_name,
                 "rank": int(member.rank),
                 "volume": float(member.volume),
                 "volume_change": float(member.volume_change),
@@ -609,24 +603,23 @@ class NewDolphindbDatabase(DolphindbDatabase):
                 break
             except RuntimeError:
                 sleep(5)
-        
 
         return True
-    
+
     def load_daily_bar_data(
-        self,
-        symbol: str,
-        exchange: Exchange,
-        interval: Interval,
-        start: datetime,
-        end: datetime = datetime(2029,12,31)
-    ) -> List[DailyBarData]:
+            self,
+            symbol: str,
+            exchange: Exchange,
+            interval: Interval,
+            start: datetime.datetime,
+            end: datetime.datetime = datetime.datetime(2029, 12, 31)
+    ) -> typing.List[DailyBarData]:
         """读取K线数据"""
         # 转换时间格式
         start = np.datetime64(start)
         start: str = str(start).replace("-", ".")
 
-        end = np.datetime64(end)        
+        end = np.datetime64(end)
         end: str = str(end).replace("-", ".")
 
         table = self.session.loadTable(tableName="dailybar", dbPath=self.db_path)
@@ -641,11 +634,11 @@ class NewDolphindbDatabase(DolphindbDatabase):
             .toDF()
         )
 
-        bars: List[DailyBarData] = []
+        bars: typing.List[DailyBarData] = []
         # 转换为BarData格式
 
         for tp in df.itertuples():
-            dt = datetime.fromtimestamp(tp.datetime.to_pydatetime().timestamp(), DB_TZ)
+            dt = datetime.datetime.fromtimestamp(tp.datetime.to_pydatetime().timestamp(), DB_TZ)
 
             bar = DailyBarData(
                 symbol=symbol,
@@ -670,16 +663,16 @@ class NewDolphindbDatabase(DolphindbDatabase):
         return bars
 
     def load_trade_data(
-        self,
-        strategy_num: str,
-        start: datetime,
-        end: datetime
-    ) -> List[MyTradeData]:
+            self,
+            strategy_num: str,
+            start: datetime.datetime,
+            end: datetime.datetime
+    ) -> typing.List[MyTradeData]:
         """"""
         start = np.datetime64(start)
         start: str = str(start).replace("-", ".")
 
-        end = np.datetime64(end)        
+        end = np.datetime64(end)
         end: str = str(end).replace("-", ".")
 
         table = self.session.loadTable(tableName="tradedata", dbPath=self.db_path)
@@ -693,42 +686,41 @@ class NewDolphindbDatabase(DolphindbDatabase):
         )
         # vt_symbol = f"{symbol}.{exchange.value}"
 
-        
-        trades: List[MyTradeData] = []
+        trades: typing.List[MyTradeData] = []
         for tp in df.itertuples():
-            dt = datetime.fromtimestamp(tp.datetime.to_pydatetime().timestamp(), DB_TZ)
+            dt = datetime.datetime.fromtimestamp(tp.datetime.to_pydatetime().timestamp(), DB_TZ)
             temp_trade = MyTradeData(
                 strategy_class=tp.strategy_class,
-                strategy_name= tp.strategy_name,
-                strategy_num= strategy_num,
-                strategy_period= int(tp.strategy_period),
-                datetime= dt,
-                symbol= tp.symbol,
-                exchange= Exchange(tp.exchange),
-                orderid= tp.orderid,
-                tradeid= tp.tradeid,
-                direction= Direction(tp.direction),
-                offset= Offset(tp.offset),
-                price= float(tp.price),
-                volume= float(tp.volume),
-                display= bool(tp.display),
-                calculate= bool(tp.calculate),
+                strategy_name=tp.strategy_name,
+                strategy_num=strategy_num,
+                strategy_period=int(tp.strategy_period),
+                datetime=dt,
+                symbol=tp.symbol,
+                exchange=Exchange(tp.exchange),
+                orderid=tp.orderid,
+                tradeid=tp.tradeid,
+                direction=Direction(tp.direction),
+                offset=Offset(tp.offset),
+                price=float(tp.price),
+                volume=float(tp.volume),
+                display=bool(tp.display),
+                calculate=bool(tp.calculate),
                 gateway_name="DB"
-                )
+            )
             trades.append(temp_trade)
 
         return trades
 
     def load_trade_all(
-        self,
-        start: datetime,
-        end: datetime
-        ) -> List[MyTradeData]:
+            self,
+            start: datetime.datetime,
+            end: datetime.datetime
+    ) -> typing.List[MyTradeData]:
         """"""
         start = np.datetime64(start)
         start: str = str(start).replace("-", ".")
 
-        end = np.datetime64(end)        
+        end = np.datetime64(end)
         end: str = str(end).replace("-", ".")
 
         table = self.session.loadTable(tableName="tradedata", dbPath=self.db_path)
@@ -742,43 +734,42 @@ class NewDolphindbDatabase(DolphindbDatabase):
 
         # vt_symbol = f"{symbol}.{exchange.value}"
 
-        
-        trades: List[MyTradeData] = []
+        trades: typing.List[MyTradeData] = []
         for tp in df.itertuples():
-            dt = datetime.fromtimestamp(tp.datetime.to_pydatetime().timestamp(), DB_TZ)
+            dt = datetime.datetime.fromtimestamp(tp.datetime.to_pydatetime().timestamp(), DB_TZ)
             temp_trade = MyTradeData(
                 strategy_class=tp.strategy_class,
-                strategy_name= tp.strategy_name,
-                strategy_num= tp.strategy_num,
-                strategy_period= int(tp.strategy_period),
-                datetime= dt,
-                symbol= tp.symbol,
-                exchange= Exchange(tp.exchange),
-                orderid= tp.orderid,
-                tradeid= tp.tradeid,
-                direction= Direction(tp.direction),
-                offset= Offset(tp.offset),
-                price= float(tp.price),
-                volume= float(tp.volume),
-                display= bool(tp.display),
-                calculate= bool(tp.calculate),
+                strategy_name=tp.strategy_name,
+                strategy_num=tp.strategy_num,
+                strategy_period=int(tp.strategy_period),
+                datetime=dt,
+                symbol=tp.symbol,
+                exchange=Exchange(tp.exchange),
+                orderid=tp.orderid,
+                tradeid=tp.tradeid,
+                direction=Direction(tp.direction),
+                offset=Offset(tp.offset),
+                price=float(tp.price),
+                volume=float(tp.volume),
+                display=bool(tp.display),
+                calculate=bool(tp.calculate),
                 gateway_name="DB"
-                )
+            )
             trades.append(temp_trade)
 
         return trades
-    
+
     def load_sign_data(
-        self,
-        strategy_id: str,
-        start: datetime,
-        end: datetime
-    ) -> List[SignData]:
+            self,
+            strategy_id: str,
+            start: datetime.datetime,
+            end: datetime.datetime
+    ) -> typing.List[SignData]:
         """"""
         start = np.datetime64(start)
         start: str = str(start).replace("-", ".")
 
-        end = np.datetime64(end)        
+        end = np.datetime64(end)
         end: str = str(end).replace("-", ".")
 
         table = self.session.loadTable(tableName="signdata", dbPath=self.db_path)
@@ -792,38 +783,38 @@ class NewDolphindbDatabase(DolphindbDatabase):
         )
         # vt_symbol = f"{symbol}.{exchange.value}"
 
-        signs: List[SignData] = []
+        signs: typing.List[SignData] = []
         for tp in df.itertuples():
-            dt_order_time = datetime.fromtimestamp(tp.order_time.to_pydatetime().timestamp(), DB_TZ)
-            dt_insert_time = datetime.fromtimestamp(tp.insert_time.to_pydatetime().timestamp(), DB_TZ)
+            dt_order_time = datetime.datetime.fromtimestamp(tp.order_time.to_pydatetime().timestamp(), DB_TZ)
+            dt_insert_time = datetime.datetime.fromtimestamp(tp.insert_time.to_pydatetime().timestamp(), DB_TZ)
             temp_sign = SignData(
                 tradingday=tp.tradingday,
-                order_time= dt_order_time,
-                strategy_group= tp.strategy_group,
-                strategy_id= tp.strategy_id,
-                instrument= tp.instrument,
-                period= int(tp.period),
-                sign= tp.sign,
-                remark= tp.remark,
-                insert_time= dt_insert_time,
+                order_time=dt_order_time,
+                strategy_group=tp.strategy_group,
+                strategy_id=tp.strategy_id,
+                instrument=tp.instrument,
+                period=int(tp.period),
+                sign=tp.sign,
+                remark=tp.remark,
+                insert_time=dt_insert_time,
                 gateway_name="DB"
-                )
+            )
             signs.append(temp_sign)
 
         return signs
 
     def load_signal_data(
-        self,
-        strategy_num: str,
-        interval:Interval,
-        start: datetime,
-        end: datetime
-    ) -> List[SignalData]:
+            self,
+            strategy_num: str,
+            interval: Interval,
+            start: datetime.datetime,
+            end: datetime.datetime
+    ) -> typing.List[SignalData]:
         """输出signal数据，需要strategy_num(str), interval(Interval), start(datetime),end"""
         start = np.datetime64(start)
         start: str = str(start).replace("-", ".")
 
-        end = np.datetime64(end)        
+        end = np.datetime64(end)
         end: str = str(end).replace("-", ".")
 
         table = self.session.loadTable(tableName="Signal", dbPath=self.db_path)
@@ -838,10 +829,9 @@ class NewDolphindbDatabase(DolphindbDatabase):
         )
         # vt_symbol = f"{symbol}.{exchange.value}"
 
-        
-        signals: List[SignalData] = []
+        signals: typing.List[SignalData] = []
         for tp in df.itertuples():
-            dt = datetime.fromtimestamp(tp.datetime.to_pydatetime().timestamp(), DB_TZ)
+            dt = datetime.datetime.fromtimestamp(tp.datetime.to_pydatetime().timestamp(), DB_TZ)
 
             signal = SignalData(
                 symbol=tp.symbol,
@@ -856,15 +846,15 @@ class NewDolphindbDatabase(DolphindbDatabase):
         return signals
 
     def load_sign_all(
-        self,
-        start: datetime,
-        end: datetime
-        ) -> list:
+            self,
+            start: datetime.datetime,
+            end: datetime.datetime
+    ) -> list:
         """"""
         start = np.datetime64(start)
         start: str = str(start).replace("-", ".")
 
-        end = np.datetime64(end)        
+        end = np.datetime64(end)
         end: str = str(end).replace("-", ".")
 
         table = self.session.loadTable(tableName="signdata", dbPath=self.db_path)
@@ -875,40 +865,40 @@ class NewDolphindbDatabase(DolphindbDatabase):
             .where(f"order_time<={end}")
             .toDF()
         )
-        
+
         # vt_symbol = f"{symbol}.{exchange.value}"
-        
-        signs: List[SignData] = []
+
+        signs: typing.List[SignData] = []
         for tp in df.itertuples():
-            dt_order_time = datetime.fromtimestamp(tp.order_time.to_pydatetime().timestamp(), DB_TZ)
-            dt_insert_time = datetime.fromtimestamp(tp.insert_time.to_pydatetime().timestamp(), DB_TZ)
+            dt_order_time = datetime.datetime.fromtimestamp(tp.order_time.to_pydatetime().timestamp(), DB_TZ)
+            dt_insert_time = datetime.datetime.fromtimestamp(tp.insert_time.to_pydatetime().timestamp(), DB_TZ)
             temp_sign = SignData(
                 tradingday=tp.tradingday,
-                order_time= dt_order_time,
-                strategy_group= tp.strategy_group,
-                strategy_id= tp.strategy_id,
-                instrument= tp.instrument,
-                period= int(tp.period),
-                sign= tp.sign,
-                remark= tp.remark,
-                insert_time= dt_insert_time,
+                order_time=dt_order_time,
+                strategy_group=tp.strategy_group,
+                strategy_id=tp.strategy_id,
+                instrument=tp.instrument,
+                period=int(tp.period),
+                sign=tp.sign,
+                remark=tp.remark,
+                insert_time=dt_insert_time,
                 gateway_name="DB"
-                )
+            )
             signs.append(temp_sign)
 
         return signs
 
     def load_symbol_same_trades(
-        self,
-        symbol_same_strategy_num: str,
-        start: datetime,
-        end: datetime
-        ) -> List[MyTradeData]:
+            self,
+            symbol_same_strategy_num: str,
+            start: datetime.datetime,
+            end: datetime.datetime
+    ) -> typing.List[MyTradeData]:
         """"""
         start = np.datetime64(start)
         start: str = str(start).replace("-", ".")
 
-        end = np.datetime64(end)        
+        end = np.datetime64(end)
         end: str = str(end).replace("-", ".")
 
         table = self.session.loadTable(tableName="tradedata", dbPath=self.db_path)
@@ -921,44 +911,44 @@ class NewDolphindbDatabase(DolphindbDatabase):
             .toDF()
         )
 
-        trades: List[MyTradeData] = []
+        trades: typing.List[MyTradeData] = []
         for tp in df.itertuples():
-            dt = datetime.fromtimestamp(tp.datetime.to_pydatetime().timestamp(), DB_TZ)
+            dt = datetime.datetime.fromtimestamp(tp.datetime.to_pydatetime().timestamp(), DB_TZ)
             temp_trade = MyTradeData(
                 strategy_class=tp.strategy_class,
-                strategy_name= tp.strategy_name,
-                strategy_num= tp.strategy_num,
-                strategy_period= int(tp.strategy_period),
-                datetime= dt,
-                symbol= tp.symbol,
-                exchange= Exchange(tp.exchange),
-                orderid= tp.orderid,
-                tradeid= tp.tradeid,
-                direction= Direction(tp.direction),
-                offset= Offset(tp.offset),
-                price= float(tp.price),
-                volume= float(tp.volume),
-                display= bool(tp.display),
-                calculate= bool(tp.calculate),
+                strategy_name=tp.strategy_name,
+                strategy_num=tp.strategy_num,
+                strategy_period=int(tp.strategy_period),
+                datetime=dt,
+                symbol=tp.symbol,
+                exchange=Exchange(tp.exchange),
+                orderid=tp.orderid,
+                tradeid=tp.tradeid,
+                direction=Direction(tp.direction),
+                offset=Offset(tp.offset),
+                price=float(tp.price),
+                volume=float(tp.volume),
+                display=bool(tp.display),
+                calculate=bool(tp.calculate),
                 gateway_name="DB"
-                )
+            )
             trades.append(temp_trade)
 
         return trades
 
     def load_domain_info(
-        self,
-        symbol: str,
-        start: datetime,
-        end: datetime
-    ) -> List[MainData]:
+            self,
+            symbol: str,
+            start: datetime.datetime,
+            end: datetime.datetime
+    ) -> typing.List[MainData]:
         """输出main数据，需要symbol(str), start(datetime),end"""
-        symbol=''.join(re.findall(r'[A-Za-z]',symbol)).upper()#只取品种英文大写代码
+        symbol = ''.join(re.findall(r'[A-Za-z]', symbol)).upper()  # 只取品种英文大写代码
 
         start = np.datetime64(start)
         start: str = str(start).replace("-", ".")
 
-        end = np.datetime64(end)        
+        end = np.datetime64(end)
         end: str = str(end).replace("-", ".")
         table = self.session.loadTable(tableName="main", dbPath=self.db_path)
 
@@ -971,10 +961,9 @@ class NewDolphindbDatabase(DolphindbDatabase):
         )
         # vt_symbol = f"{symbol}.{exchange.value}"
 
-        
-        mains: List[MainData] = []
+        mains: typing.List[MainData] = []
         for tp in df.itertuples():
-            dt = datetime.fromtimestamp(tp.datetime.to_pydatetime().timestamp(), DB_TZ)
+            dt = datetime.datetime.fromtimestamp(tp.datetime.to_pydatetime().timestamp(), DB_TZ)
 
             domain = MainData(
                 symbol=tp.symbol,
@@ -987,20 +976,20 @@ class NewDolphindbDatabase(DolphindbDatabase):
         return mains
 
     def load_trend_features_data(
-        self,
-        interval: Interval,
-        index_name: str,
-        index_trend_var: str,
-        symbol: str='',
-        start: datetime='2010-01-01',
-        end: datetime='2029-12-31'
-    ) -> List[TrendFeaturesData]:
+            self,
+            interval: Interval,
+            index_name: str,
+            index_trend_var: str,
+            symbol: str = '',
+            start: datetime.datetime = '2010-01-01',
+            end: datetime.datetime = '2029-12-31'
+    ) -> typing.List[TrendFeaturesData]:
         """读取K线数据"""
         # 转换时间格式
         start = np.datetime64(start)
         start: str = str(start).replace("-", ".")
 
-        end = np.datetime64(end)        
+        end = np.datetime64(end)
         end: str = str(end).replace("-", ".")
 
         table = self.session.loadTable(tableName="trendfeatures", dbPath=self.db_path)
@@ -1027,12 +1016,12 @@ class NewDolphindbDatabase(DolphindbDatabase):
                 .toDF()
             )
 
-        bars: List[TrendFeaturesData] = []
+        bars: typing.List[TrendFeaturesData] = []
         # 转换为BarData格式
 
         for tp in df.itertuples():
-            dt = datetime.fromtimestamp(tp.datetime.to_pydatetime().timestamp(), DB_TZ)
-            trend_point_dt = datetime.fromtimestamp(tp.trend_point_date.to_pydatetime().timestamp(), DB_TZ)
+            dt = datetime.datetime.fromtimestamp(tp.datetime.to_pydatetime().timestamp(), DB_TZ)
+            trend_point_dt = datetime.datetime.fromtimestamp(tp.trend_point_date.to_pydatetime().timestamp(), DB_TZ)
 
             bar = TrendFeaturesData(
                 symbol=tp.symbol,
@@ -1040,8 +1029,8 @@ class NewDolphindbDatabase(DolphindbDatabase):
                 interval=Interval(tp.interval),
                 datetime=dt,
                 close_price=tp.close_price,
-                index_name = tp.index_name,
-                index_trend_var = index_trend_var,
+                index_name=tp.index_name,
+                index_trend_var=index_trend_var,
                 index_trend_now=tp.index_trend_now,
                 trend_point_date=trend_point_dt,
                 trend_point_price=tp.trend_point_price,
@@ -1062,10 +1051,10 @@ class NewDolphindbDatabase(DolphindbDatabase):
         return bars
 
     def delete_daily_bar_data(
-        self,
-        symbol: str,
-        exchange: Exchange,
-        interval: Interval
+            self,
+            symbol: str,
+            exchange: Exchange,
+            interval: Interval
     ) -> int:
         """删除日线K线数据"""
         # 加载数据表
@@ -1103,13 +1092,13 @@ class NewDolphindbDatabase(DolphindbDatabase):
         return count
 
     def delete_trend_features_data(
-        self,
-        symbol: str,
-        interval: Interval,
-        index_name: str,
-        index_trend_var: str,
-        start: datetime=datetime(2010,1,1),
-        end: datetime=datetime(2029,12,31)
+            self,
+            symbol: str,
+            interval: Interval,
+            index_name: str,
+            index_trend_var: str,
+            start: datetime.datetime = datetime.datetime(2010, 1, 1),
+            end: datetime.datetime = datetime.datetime(2029, 12, 31)
     ) -> int:
         """删除日线K线数据"""
         # 加载数据表
@@ -1156,17 +1145,17 @@ class NewDolphindbDatabase(DolphindbDatabase):
         return count
 
     def delete_trade_data(
-        self,
-        strategy_num: str,
-        start: datetime,
-        end: datetime
+            self,
+            strategy_num: str,
+            start: datetime.datetime,
+            end: datetime.datetime
     ) -> int:
         """删除tradedata数据"""
         # 加载数据表
         start = np.datetime64(start)
         start: str = str(start).replace("-", ".")
 
-        end = np.datetime64(end)        
+        end = np.datetime64(end)
         end: str = str(end).replace("-", ".")
         table = self.session.loadTable(tableName="tradedata", dbPath=self.db_path)
 
@@ -1197,17 +1186,17 @@ class NewDolphindbDatabase(DolphindbDatabase):
         return count
 
     def delete_sign_data(
-        self,
-        strategy_id: str,
-        start: datetime,
-        end: datetime
+            self,
+            strategy_id: str,
+            start: datetime.datetime,
+            end: datetime.datetime
     ) -> int:
         """删除sign数据"""
         # 加载数据表
         start = np.datetime64(start)
         start: str = str(start).replace("-", ".")
 
-        end = np.datetime64(end)        
+        end = np.datetime64(end)
         end: str = str(end).replace("-", ".")
         table = self.session.loadTable(tableName="signdata", dbPath=self.db_path)
 
@@ -1236,20 +1225,20 @@ class NewDolphindbDatabase(DolphindbDatabase):
                 # print("Runtime Error")
                 sleep(5)
         return count
-        
+
     def delete_signal_data(
-        self,
-        strategy_num: str,
-        interval:Interval,
-        start: datetime,
-        end: datetime
+            self,
+            strategy_num: str,
+            interval: Interval,
+            start: datetime.datetime,
+            end: datetime.datetime
     ) -> int:
         """删除signal数据，需要strategy_num(str), interval(Interval), start(datetime),end"""
         # 加载数据表
         start = np.datetime64(start)
         start: str = str(start).replace("-", ".")
 
-        end = np.datetime64(end)        
+        end = np.datetime64(end)
         end: str = str(end).replace("-", ".")
         table = self.session.loadTable(tableName="Signal", dbPath=self.db_path)
 
@@ -1282,31 +1271,31 @@ class NewDolphindbDatabase(DolphindbDatabase):
 
         return count
 
-    def get_tick_overview(self) -> List[TickOverview]:
+    def get_tick_overview(self) -> typing.List[TickOverview]:
         """"查询数据库中的K线汇总信息"""
         table = self.session.loadTable(tableName="tick_overview", dbPath=self.db_path)
         df: pd.DataFrame = table.select("*").toDF()
 
-        overviews: List[TickOverview] = []
+        overviews: typing.List[TickOverview] = []
 
         for tp in df.itertuples():
             overview = TickOverview(
                 symbol=tp.symbol,
                 exchange=Exchange(tp.exchange),
                 count=tp.count,
-                start=datetime.fromtimestamp(tp.start.to_pydatetime().timestamp(), DB_TZ),
-                end=datetime.fromtimestamp(tp.end.to_pydatetime().timestamp(), DB_TZ),
+                start=datetime.datetime.fromtimestamp(tp.start.to_pydatetime().timestamp(), DB_TZ),
+                end=datetime.datetime.fromtimestamp(tp.end.to_pydatetime().timestamp(), DB_TZ),
             )
             overviews.append(overview)
 
         return overviews
 
-    def get_daily_bar_overview(self) -> List[DailyBarOverview]:
+    def get_daily_bar_overview(self) -> typing.List[DailyBarOverview]:
         """"查询数据库中的K线汇总信息"""
         table = self.session.loadTable(tableName="dailybar_overview", dbPath=self.db_path)
         df: pd.DataFrame = table.select("*").toDF()
 
-        overviews: List[DailyBarOverview] = []
+        overviews: typing.List[DailyBarOverview] = []
 
         for tp in df.itertuples():
             overview = DailyBarOverview(
@@ -1314,8 +1303,8 @@ class NewDolphindbDatabase(DolphindbDatabase):
                 exchange=Exchange(tp.exchange),
                 interval=Interval(tp.interval),
                 count=tp.count,
-                start=datetime.fromtimestamp(tp.start.to_pydatetime().timestamp(), DB_TZ),
-                end=datetime.fromtimestamp(tp.end.to_pydatetime().timestamp(), DB_TZ),
+                start=datetime.datetime.fromtimestamp(tp.start.to_pydatetime().timestamp(), DB_TZ),
+                end=datetime.datetime.fromtimestamp(tp.end.to_pydatetime().timestamp(), DB_TZ),
             )
             overviews.append(overview)
 
