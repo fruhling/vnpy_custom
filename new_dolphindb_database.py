@@ -22,7 +22,7 @@ from vnpy_dolphindb.dolphindb_script import (
     CREATE_DATABASE_SCRIPT,
     CREATE_BAR_TABLE_SCRIPT,
     CREATE_TICK_TABLE_SCRIPT,
-    CREATE_OVERVIEW_TABLE_SCRIPT
+    CREATE_BAROVERVIEW_TABLE_SCRIPT
 )
 from .new_dolphindb_script import (
     CREATE_TICK_OVERVIEW_TABLE_SCRIPT,
@@ -70,7 +70,7 @@ class NewDolphindbDatabase(DolphindbDatabase):
             self.session.run(CREATE_DATABASE_SCRIPT)
             self.session.run(CREATE_BAR_TABLE_SCRIPT)
             self.session.run(CREATE_TICK_TABLE_SCRIPT)
-            self.session.run(CREATE_OVERVIEW_TABLE_SCRIPT)
+            self.session.run(CREATE_BAROVERVIEW_TABLE_SCRIPT)
             self.session.run(CREATE_TICK_OVERVIEW_TABLE_SCRIPT)
             self.session.run(CREATE_DAILY_BAR_TABLE_SCRIPT)
             self.session.run(CREATE_DAILY_OVERVIEW_TABLE_SCRIPT)
@@ -170,7 +170,7 @@ class NewDolphindbDatabase(DolphindbDatabase):
 
         df: pd.DataFrame = pd.DataFrame.from_records(data)
 
-        appender = ddb.PartitionedTableAppender(self.db_path, "overview", "datetime", self.pool)
+        appender = ddb.PartitionedTableAppender(self.db_path, "baroverview", "datetime", self.pool)
 
         while True:
             try:
@@ -977,10 +977,10 @@ class NewDolphindbDatabase(DolphindbDatabase):
 
     def load_trend_features_data(
             self,
-            interval: Interval,
-            index_name: str,
-            index_trend_var: str,
             symbol: str = '',
+            interval: Interval = Interval.DAILY,
+            index_name: str = 'com_nanhua',
+            index_trend_var: str = '4.0',
             start: datetime.datetime = '2010-01-01',
             end: datetime.datetime = '2029-12-31'
     ) -> typing.List[TrendFeaturesData]:
@@ -1094,9 +1094,9 @@ class NewDolphindbDatabase(DolphindbDatabase):
     def delete_trend_features_data(
             self,
             symbol: str,
-            interval: Interval,
-            index_name: str,
-            index_trend_var: str,
+            interval: Interval = Interval.DAILY,
+            index_name: str = 'com_nanhua',
+            index_trend_var: str = '4.0',
             start: datetime.datetime = datetime.datetime(2010, 1, 1),
             end: datetime.datetime = datetime.datetime(2029, 12, 31)
     ) -> int:
